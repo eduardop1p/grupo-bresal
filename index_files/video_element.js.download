@@ -1,0 +1,84 @@
+SK = typeof SK == 'undefined' ? {} : SK;
+SK.UI = SK.UI || {};
+SK.UI.Page = SK.UI.Page || {};
+SK.UI.Page.Image = SK.UI.Page.Image || {};
+SK.UI.Page.Image.Display = SK.UI.Page.Image.Display || {};
+
+
+SK.UI.Page.Image.Display.Video = new Class({
+
+   Implements : [ Options ],
+   
+   /* --- OPTIONS ----------------------------------------------------------- */
+   options : {
+      src   : null,                             // source to the video .mp4 file
+      mute  : 0
+   },
+   
+   placeholder : null,                          // stores .pageImage DOM Element
+   video_holder: null,                          // stores element containing <video>
+   video_elem  : null,                          // stores <video> element
+   
+   initialize : function ( placeholder, options ) {
+      this.placeholder = placeholder;
+      this.setOptions( options );
+      this.createElement();
+   },
+   
+   createElement : function () {
+      this.placeholder.setStyle('position', 'relative');
+
+      this.video_holder = new Element( 'div',
+         {
+            'class' : 'sk-pi-image-video-wrapper'
+         }
+      ).grab(
+         this.video_elem = new Element( 'video', {
+            id           : 'page-image-video',
+            preload      : 'auto',
+            autoplay     : 'true',
+            loop         : 'true',
+            src          : this.getVideoSrc(),
+            title        : this.options.caption || '',
+            'aria-label' : this.options.caption || '',
+            playsinline  : true,
+         })
+      ).inject( this.placeholder, 'top' );
+
+      this.setMuteOption(this.options.mute);
+
+      // Set a flag in the environment
+      SK.Singletons.env.set( 'has_page_image_video', true );
+   },
+
+   destroy : function () {
+      this.video_holder.dispose()
+   },
+
+   getVideoSrc : function () {
+      let sizes = this.options.sizes || {};
+
+      try {
+         // Parse the received object if received as a sting.
+         sizes = JSON.parse( this.options.sizes );
+      } catch ( e ) {}
+
+      const video = Object.values( sizes )
+                   .sort( (current, next) => current.width - next.width )
+                   .find( item => item.width >= window.innerWidth )
+                   // Fallback to the original size if the screen is bigger than the biggest video resized source
+                   || this.options;
+
+      return video.src;
+   },
+
+   setMuteOption : function ( value ) {
+      // If value is 1, or if is a mobile device, set mute to true
+      this.video_elem.muted = !!parseInt(value, 10) || SK.Util.isMobile();
+   },
+
+   setCaption : function ( caption ) {
+      this.video_elem.setAttribute( 'title', caption );
+      this.video_elem.setAttribute( 'aria-label', caption );
+   }
+});
